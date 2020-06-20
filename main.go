@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -17,72 +16,19 @@ type bucketImage struct {
 	Filename 	string `json:"filename"`
 }
 
-func getClientIP(c *gin.Context) string {
-	requester := c.Request.Header.Get("X-Forwarded-For")
-	if len(requester) == 0 {
-		requester = c.Request.Header.Get("X-Real-IP")
-	}
-	if len(requester) == 0 {
-		requester = c.Request.RemoteAddr
-	}
-	if strings.Contains(requester, ",") {
-		requester = strings.Split(requester, ",")[0]
-	}
-	return requester
-}
-
-func getDurationInMillseconds(start time.Time) float64 {
-	end := time.Now()
-	duration := end.Sub(start)
-	milliseconds := float64(duration) / float64(time.Millisecond)
-	rounded := float64(int(milliseconds*100+.5)) / 100
-	return rounded
-}
-
-func jsonLogMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-     
-        start := time.Now()
-        c.Next()
-        duration := getDurationInMillseconds(start)
-
-        entry := log.WithFields(log.Fields{
-            "client_ip":  getClientIP(c),
-            "duration":   duration,
-            "method":     c.Request.Method,
-            "path":       c.Request.RequestURI,
-            "status":     c.Writer.Status(),
-            "referrer":   c.Request.Referer(),
-            "request_id": c.Writer.Header().Get("Request-Id"),
-        })
-
-        if c.Writer.Status() >= 500 {
-            entry.Error(c.Errors.String())
-        } else {
-            entry.Info("")
-        }
-    }
-}
-
-func bucketDownload(c *gin.Context) {
-
-	var req bucketImage
-	c.Bind(&req)
-	
-	ctx := context.Background()
+func getBucket(ctx context.Context, req bucketImage) (*storage.BucketHandle, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-		log.Error("Failed to create storage client", err)
-		c.Abort()
-		return
+		return nil, err
 	}
-
-	bucket := client.Bucket(req.BucketName)
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second * 10)
 	defer cancel()
-	
-	obj := bucket.Object(req.Filename)
+	bucket := client.Bucket(req.BucketName)
+	return bucket, nil
+}
+
+func getImageFromGCP(ctx context.Context, bucket *storage.BucketHandle, filename string) (int64, *bytes.Buffer, error) {
+	obj := bucket.Object(filename)
 
 	r, err := obj.NewReader(ctx)
 	if err != nil {
@@ -91,13 +37,43 @@ func bucketDownload(c *gin.Context) {
 	defer r.Close()
 	
 	buf := &bytes.Buffer{}
-	nRead, err := io.Copy(buf, r) 
+	size, err := io.Copy(buf, r) 
 	if err != nil {
-		log.Error("Failed to load image", err)
+		return 0, nil, err
+	}
+	return size, buf, nil
+}
+
+func downloadAndResize(c *gin.Context) {
+
+	var req bucketImage
+	c.Bind(&req)
+	
+	ctx := context.Background()
+	bucket, err := getBucket(ctx, req)
+	if err != nil {
+		log.Error("Failed load bucket", err)
+		c.Abort()
+		return
 	}
 
+	size, buf, err := getImageFromGCP(ctx, bucket, req.Filename)
+	if err != nil {
+		log.Error("Failed get image from bucket", err)
+		c.Abort()
+		return
+	}
+
+	img, err := resize(buf, 400)
+	if err != nil {
+		log.Error("Failed resize image", err)
+		c.Abort()
+		return
+	}
+	encodedImageJpg, err := encodeImageToJpg(&img)
+
 	// TODO Discover image type to set contentType
-	c.DataFromReader(200, nRead, "image/png", buf, map[string]string{})
+	c.DataFromReader(200, size, "image/png", encodedImageJpg, map[string]string{})
 }
 
 func main() {
@@ -111,7 +87,7 @@ func main() {
 	}
 
 	r.Use(gin.Recovery())
-	r.POST("/bucket/download", bucketDownload)
+	r.POST("/bucket/download", downloadAndResize)
 
 	log.Info("Starting image-resize-proxy")
 	r.Run() // listen and serve on 0.0.0.0:8080
