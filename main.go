@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"time"
+	"net/http"
 
 	"cloud.google.com/go/storage"
 	"github.com/gin-gonic/gin"
@@ -63,7 +64,8 @@ func downloadAndResize(c *gin.Context) {
 		c.Abort()
 		return
 	}
-
+	contentType := http.DetectContentType(buf.Bytes())
+	
 	img, err := resize(buf, 400)
 	if err != nil {
 		log.Error("Failed resize image", err)
@@ -71,9 +73,8 @@ func downloadAndResize(c *gin.Context) {
 		return
 	}
 	encodedImageJpg, err := encodeImageToJpg(&img)
-
-	// TODO Discover image type to set contentType
-	c.DataFromReader(200, size, "image/png", encodedImageJpg, map[string]string{})
+	
+	c.DataFromReader(200, size, contentType, encodedImageJpg, map[string]string{})
 }
 
 func main() {
