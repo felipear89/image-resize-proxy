@@ -15,8 +15,8 @@ import (
 )
 
 type bucketImage struct {
-	BucketName	string `json:"bucketName"`
-	Filename 	string `json:"filename"`
+	BucketName	string `json:"bucketName" binding:"required"`
+	Filename 	string `json:"filename" binding:"required"`
 	MaxWidth 	int  	`json:"maxWidth"`
 }
 
@@ -45,7 +45,14 @@ func getImageFromGCP(ctx context.Context, bucket *storage.BucketHandle, filename
 func downloadAndResize(c *gin.Context) {
 
 	var req bucketImage
-	c.Bind(&req)
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "json decoding : " + err.Error(),
+			"status": http.StatusBadRequest,
+		})
+		return
+	}
 	
 	ctx := context.Background()
 	bucket, err := getBucket(ctx, req)
@@ -61,19 +68,29 @@ func downloadAndResize(c *gin.Context) {
 	log.Info("Original image size: ", buf.Len())
 	
 	if (imageInfo.Width > req.MaxWidth) {
-		img, err := resize(bytes.NewBuffer(buf.Bytes()), req.MaxWidth)
+		resizeImageAndWriteResponse(c, buf.Bytes(), req.MaxWidth)
+		return
+	}
+	writeResponse(c, buf.Bytes())
+}
+
+func writeResponse(c *gin.Context, buf []byte) {
+	img, err := imaging.Decode(bytes.NewBuffer(buf))
+	// compress original image
+	encodedImageJpg, err := encodeImageToJpg(&img)
+	if err != nil { abort(c, "Failed to encode image", err); return }
+	contentType := http.DetectContentType(buf)
+	c.DataFromReader(200, int64(encodedImageJpg.Len()), contentType, encodedImageJpg, map[string]string{})
+}
+
+func resizeImageAndWriteResponse(c *gin.Context, buf []byte, maxWidth int) {
+	img, err := resize(bytes.NewBuffer(buf), maxWidth)
 		if err != nil { abort(c, "Failed to resize image", err); return }
 		encodedImageJpg, err := encodeImageToJpg(&img)
 		if err != nil { abort(c, "Failed to encode image", err); return }
-		contentType := http.DetectContentType(buf.Bytes())
+		contentType := http.DetectContentType(buf)
 		log.Info("Resized image size: ", encodedImageJpg.Len())
 		c.DataFromReader(200, int64(encodedImageJpg.Len()), contentType, encodedImageJpg, map[string]string{})
-	}
-	img, err := imaging.Decode(bytes.NewBuffer(buf.Bytes()))
-	encodedImageJpg, err := encodeImageToJpg(&img)
-	if err != nil { abort(c, "Failed to encode image", err); return }
-	contentType := http.DetectContentType(buf.Bytes())
-	c.DataFromReader(200, int64(encodedImageJpg.Len()), contentType, encodedImageJpg, map[string]string{})
 }
 
 func abort(c *gin.Context, msg string, err error) {

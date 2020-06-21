@@ -2,11 +2,10 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"testing"
 
-	"github.com/disintegration/imaging"
+    "github.com/stretchr/testify/assert"
 )
 
 func check(e error) {
@@ -15,15 +14,14 @@ func check(e error) {
     }
 }
 
+//imaging.Save(image, "./images/img-to-test-result.jpg")
 func TestResizeImage(t *testing.T) {
+    assert := assert.New(t)
     f, err := os.Open("./images/img-to-test.jpg")
     check(err)
     r := bufio.NewReader(f)
     image, err := resize(r, 600)
     check(err)
     encodedImageJpg, err := encodeImageToJpg(&image)
-
-    fmt.Println(encodedImageJpg.Len())
-
-    imaging.Save(image, "./images/img-to-test-result.jpg")
+    assert.Equal(28094, encodedImageJpg.Len())
 }

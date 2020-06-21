@@ -23,6 +23,8 @@ func resize(reader io.Reader, width int) (image.Image, error) {
 
 func encodeImageToJpg(img *image.Image) (*bytes.Buffer, error) {
 	encoded := &bytes.Buffer{}
-	err := jpeg.Encode(encoded, *img, nil)
+	err := jpeg.Encode(encoded, *img, &jpeg.Options{
+		Quality: 75,
+	})
 	return encoded, err
 }
