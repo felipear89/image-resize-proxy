@@ -16,7 +16,8 @@ curl --location --request POST 'http://localhost:8080/google/bucket/download' \
 --data-raw '{
     "bucketName": "{bucketName}",
     "filename": "{filepath}",
-    "maxWidth": {maxWidthAllowed}
+    "maxWidth": {maxWidthAllowed},
+    "maxHeight": {maxHeightAllowed}
 }'
 
 ```
