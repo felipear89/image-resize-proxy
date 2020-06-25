@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"bytes"
@@ -9,13 +9,11 @@ import (
 	"github.com/disintegration/imaging"
 )
 
-func resize(reader io.Reader, width int) (image.Image, error) {
+func resize(reader io.Reader, maxWidth, maxHeight int) (image.Image, error) {
 	
 	image, err := imaging.Decode(reader)
-	if err != nil {
-		return nil, err
-	}
-	resizedImage := imaging.Resize(image, width, 0, imaging.Lanczos)
+	if err != nil { return nil, err }
+	resizedImage := imaging.Resize(image, maxWidth, maxHeight, imaging.Lanczos)
 	
 	return resizedImage, nil
 }

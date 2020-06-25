@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"strings"
@@ -8,7 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func jsonLogMiddleware() gin.HandlerFunc {
+// JSONLogMiddlewarego is used to log using json format
+func JSONLogMiddlewarego() gin.HandlerFunc {
     return func(c *gin.Context) {
      
         start := time.Now()
