@@ -69,16 +69,16 @@ func shouldResize(imageInfo *image.Config, maxWidth, maxHeight int) bool {
 func writeResponse(c *gin.Context, buf []byte) {
 	img, err := imaging.Decode(bytes.NewBuffer(buf))
 	// compress original image
-	encodedImageJpg, err := encodeImageToJpg(&img)
+	encodedImageJpg, err := EncodeImageToJpg(&img)
 	if err != nil { abort(c, "Failed to encode image", err); return }
 	contentType := http.DetectContentType(buf)
 	c.DataFromReader(200, int64(encodedImageJpg.Len()), contentType, encodedImageJpg, map[string]string{})
 }
 
 func resizeImageAndWriteResponse(c *gin.Context, buf []byte, maxWidth, maxHeight int) {
-	img, err := resize(bytes.NewBuffer(buf), maxWidth, maxHeight)
+	img, err := Resize(bytes.NewBuffer(buf), maxWidth, maxHeight)
 	if err != nil { abort(c, "Failed to resize image", err); return }
-	encodedImageJpg, err := encodeImageToJpg(&img)
+	encodedImageJpg, err := EncodeImageToJpg(&img)
 	if err != nil { abort(c, "Failed to encode image", err); return }
 	contentType := http.DetectContentType(buf)
 	log.Info("Resized image size: ", encodedImageJpg.Len(), " bytes")

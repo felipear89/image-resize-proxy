@@ -9,7 +9,8 @@ import (
 	"github.com/disintegration/imaging"
 )
 
-func resize(reader io.Reader, maxWidth, maxHeight int) (image.Image, error) {
+// Resize the image
+func Resize(reader io.Reader, maxWidth, maxHeight int) (image.Image, error) {
 	
 	image, err := imaging.Decode(reader)
 	if err != nil { return nil, err }
@@ -18,8 +19,8 @@ func resize(reader io.Reader, maxWidth, maxHeight int) (image.Image, error) {
 	return resizedImage, nil
 }
 
-
-func encodeImageToJpg(img *image.Image) (*bytes.Buffer, error) {
+// EncodeImageToJpg and compress
+func EncodeImageToJpg(img *image.Image) (*bytes.Buffer, error) {
 	encoded := &bytes.Buffer{}
 	err := jpeg.Encode(encoded, *img, &jpeg.Options{
 		Quality: 75,

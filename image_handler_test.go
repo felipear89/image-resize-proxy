@@ -3,7 +3,8 @@ package main
 import (
 	"bufio"
 	"os"
-	"testing"
+    "testing"
+     app "image-resize-proxy/app"
 
     "github.com/stretchr/testify/assert"
 )
@@ -20,8 +21,8 @@ func TestResizeImage(t *testing.T) {
     f, err := os.Open("./images/img-to-test.jpg")
     check(err)
     r := bufio.NewReader(f)
-    image, err := resize(r, 600)
+    image, err := app.Resize(r, 0, 600)
     check(err)
-    encodedImageJpg, err := encodeImageToJpg(&image)
+    encodedImageJpg, err := app.EncodeImageToJpg(&image)
     assert.Equal(28094, encodedImageJpg.Len())
 }
