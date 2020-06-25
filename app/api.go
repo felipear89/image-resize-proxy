@@ -43,7 +43,7 @@ func DownloadAndResize(c *gin.Context) {
 	if err != nil { abort(c, "Failed to get image dimentions", err); return }
 	
 	log.Info("Original image width: ", imageInfo.Width, ", height: ", imageInfo.Height)
-	log.Info("Original image size: ", buf.Len())
+	log.Info("Original image size: ", buf.Len(), " bytes")
 	
 	if (shouldResize(&imageInfo, req.MaxWidth, req.MaxHeight)) {
 		w, h := getDimentions(req.MaxWidth, req.MaxHeight, req.PortraitOption)
@@ -81,7 +81,7 @@ func resizeImageAndWriteResponse(c *gin.Context, buf []byte, maxWidth, maxHeight
 	encodedImageJpg, err := encodeImageToJpg(&img)
 	if err != nil { abort(c, "Failed to encode image", err); return }
 	contentType := http.DetectContentType(buf)
-	log.Info("Resized image size: ", encodedImageJpg.Len())
+	log.Info("Resized image size: ", encodedImageJpg.Len(), " bytes")
 	c.DataFromReader(200, int64(encodedImageJpg.Len()), contentType, encodedImageJpg, map[string]string{})
 }
 
