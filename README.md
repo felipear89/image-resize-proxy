@@ -5,8 +5,7 @@ A http server that returns images from google storage applying resizing and comp
 ## How to run
 ```
 go build
-export GOOGLE_APPLICATION_CREDENTIALS="{google_credentials_path.json}"
-./image-resize-proxy
+export GOOGLE_APPLICATION_CREDENTIALS="{google_credentials_path.json}" ./image-resize-proxy
 ```
 
 ## How to request
