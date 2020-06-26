@@ -8,8 +8,13 @@ import (
 	"cloud.google.com/go/storage"
 )
 
+// NewStorageClient with google storage
+func NewStorageClient(ctx context.Context) (*storage.Client, error) {
+	return storage.NewClient(ctx)
+}
+
 func getBucket(ctx context.Context, req bucketImage) (*storage.BucketHandle, error) {
-	client, err := storage.NewClient(ctx)
+	client, err := NewStorageClient(ctx)
 	if err != nil { return nil, err }
 	ctx, cancel := context.WithTimeout(ctx, time.Second * 10)
 	defer cancel()
