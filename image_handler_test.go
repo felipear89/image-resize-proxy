@@ -24,5 +24,5 @@ func TestResizeImage(t *testing.T) {
     image, err := app.Resize(r, 0, 600)
     check(err)
     encodedImageJpg, err := app.EncodeImageToJpg(&image)
-    assert.Equal(28094, encodedImageJpg.Len())
+    assert.Equal(63828, encodedImageJpg.Len())
 }
